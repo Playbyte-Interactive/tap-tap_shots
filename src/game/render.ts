@@ -20,7 +20,6 @@ export function drawTapTapGame(
   ctx.clearRect(0, 0, width, height);
   drawViewportBackground(ctx, width, height);
 
-  // Responsive scaling to pin to the bottom edge on phones
   const isMobile = width < height;
   const scale = isMobile 
     ? width / COURT_WIDTH 
@@ -247,8 +246,6 @@ function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame, isMobile
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
 
-  // Density Cap: Draws fewer overlapping circles to save GPU on mobile, 
-  // but keeps all shadows and glowing neon effects intact!
   const historyLimit = isMobile ? Math.min(14, game.ballHistory.length) : game.ballHistory.length;
 
   for (let index = 0; index < historyLimit; index += 1) {
@@ -265,11 +262,11 @@ function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame, isMobile
       const hue = 48 - t * 36;
       ctx.fillStyle = `hsla(${hue}, 100%, ${index < 4 ? 58 : 40}%, ${age * 0.36 * fire})`;
       ctx.shadowColor = index < 4 ? "#ffe44c" : "#ff4c2f";
-      ctx.shadowBlur = (22 - t * 12) * comboBoost;
+      ctx.shadowBlur = isMobile ? 0 : (22 - t * 12) * comboBoost;
     } else {
       ctx.fillStyle = `rgba(160, 222, 255, ${age * 0.12})`;
       ctx.shadowColor = "#75d9ff";
-      ctx.shadowBlur = 7 - t * 3;
+      ctx.shadowBlur = isMobile ? 0 : 7 - t * 3;
     }
     ctx.fill();
 
@@ -277,7 +274,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame, isMobile
       ctx.beginPath();
       ctx.arc(point.x + Math.sin(index) * 4, point.y + Math.cos(index * 1.7) * 4, radius * 0.92, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255, 62, 36, ${age * 0.18 * fire})`;
-      ctx.shadowBlur = 4;
+      ctx.shadowBlur = isMobile ? 0 : 4;
       ctx.fill();
     }
   }
@@ -361,13 +358,14 @@ function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame, isM
     ctx.strokeStyle = `rgba(255,255,255,${0.9 * pulse})`;
     ctx.lineWidth = 3.4;
     ctx.shadowColor = "#ffe84a";
-    ctx.shadowBlur = 22;
+    ctx.shadowBlur = isMobile ? 0 : 22;
     ctx.beginPath();
     ctx.ellipse(0, 5, 34 + outward * 112, 8 + outward * 36, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Particle Density Drop: Renders 11 sparks instead of 18 on mobile devices.
-    const particleCount = isMobile ? 11 : 18;
+    // Disable shadow leak before generating the 10-18 particles 
+    ctx.shadowBlur = 0;
+    const particleCount = isMobile ? 10 : 18;
     for (let i = 0; i < particleCount; i += 1) {
       const angle = (i / particleCount) * Math.PI * 2 + outward * 1.9;
       const wave = Math.sin(i * 2.17) * 0.28;
@@ -375,9 +373,14 @@ function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame, isM
       const x = Math.cos(angle) * distance;
       const y = Math.sin(angle + wave) * distance * 0.55;
       const size = 3.5 + ((i + 1) % 4) * 1.2;
+      
       ctx.fillStyle = i % 2 === 0 ? `rgba(255,246,151,${pulse})` : `rgba(255,91,35,${pulse})`;
-      ctx.shadowColor = i % 2 === 0 ? "#fff151" : "#ff5b23";
-      ctx.shadowBlur = 14;
+      
+      if (!isMobile) {
+        ctx.shadowColor = i % 2 === 0 ? "#fff151" : "#ff5b23";
+        ctx.shadowBlur = 14;
+      }
+      
       ctx.beginPath();
       ctx.arc(x, y, size * pulse, 0, Math.PI * 2);
       ctx.fill();
@@ -387,11 +390,13 @@ function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame, isM
   ctx.strokeStyle = "#fff4a8";
   ctx.lineWidth = 4;
   ctx.shadowColor = "#ffc928";
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = isMobile ? 0 : 18;
   ctx.beginPath();
   ctx.ellipse(0, 0, 46 + outward * 60, 10 + outward * 19, 0, 0, Math.PI * 2);
   ctx.stroke();
 
+  // Disable shadow leak BEFORE the 10x loop draws the lines
+  ctx.shadowBlur = 0;
   for (let i = 0; i < 10; i += 1) {
     const angle = (i / 10) * Math.PI * 2;
     const start = 28 + outward * 10;
@@ -408,9 +413,11 @@ function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame, isM
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.shadowColor = game.lastScoreWasSwish ? "#ff5a1f" : "#ffb000";
-  ctx.shadowBlur = game.lastScoreWasSwish ? 16 : 10;
+  ctx.shadowBlur = isMobile ? 0 : (game.lastScoreWasSwish ? 16 : 10);
   ctx.fillText(`+${game.lastScoreValue}`, 0, -64 - outward * 22);
 
+  // Disable shadow leak for the secondary SWISH text
+  ctx.shadowBlur = 0;
   if (game.lastScoreWasSwish) {
     ctx.fillStyle = "#ffe84a";
     ctx.font = "900 18px Impact, 'Arial Black', sans-serif";
