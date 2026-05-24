@@ -55,7 +55,7 @@ export const COURT_HEIGHT = 844;
 export const HOOP_RADIUS = 35;
 
 const BALL_RADIUS = 17;
-const HOOP_WALL_INSET = 22;
+const HOOP_WALL_INSET = 11;
 const GRAVITY = 1200;
 const TAP_BOOST_Y = -525;
 const MAX_UPWARD_SPEED = -865;
@@ -65,7 +65,7 @@ const CEILING_Y = 122;
 const FLOOR_Y = COURT_HEIGHT - 44;
 const MAX_PHYSICS_STEP = 1 / 150;
 const RIM_THICKNESS = 6;
-const BOARD_W = 10;
+const BOARD_W = 9;
 const BOARD_H = 112;
 const NORMAL_BASKET_POINTS = 1;
 const SWISH_BASKET_POINTS = 3;

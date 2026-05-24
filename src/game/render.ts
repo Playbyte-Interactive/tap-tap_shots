@@ -20,11 +20,24 @@ export function drawTapTapGame(
   ctx.clearRect(0, 0, width, height);
   drawViewportBackground(ctx, width, height);
 
-  const scale = Math.min(width / COURT_WIDTH, height / COURT_HEIGHT);
+  // --- NEW RESPONSIVE SCALING LOGIC ---
+  // If the screen is portrait (like a phone), force the game to fill the width.
+  // If it's landscape (like a desktop), contain it normally so it doesn't zoom massively.
+  const isPortrait = width < height;
+  const scale = isPortrait 
+    ? width / COURT_WIDTH 
+    : Math.min(width / COURT_WIDTH, height / COURT_HEIGHT);
+
   const gameWidthPixels = COURT_WIDTH * scale;
   const gameHeightPixels = COURT_HEIGHT * scale;
+  
   const offsetX = (width - gameWidthPixels) / 2;
-  const offsetY = (height - gameHeightPixels) / 2;
+  
+  // In portrait, align the game to the bottom so the floor is always perfectly visible.
+  // In landscape, center it vertically.
+  const offsetY = isPortrait 
+    ? height - gameHeightPixels 
+    : (height - gameHeightPixels) / 2;
 
   ctx.translate(offsetX, offsetY);
   ctx.scale(scale, scale);
@@ -44,7 +57,6 @@ export function drawTapTapGame(
 
   ctx.restore();
 }
-
 function drawViewportBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const bg = ctx.createLinearGradient(0, 0, 0, height);
   bg.addColorStop(0, "#15141c");
@@ -69,8 +81,8 @@ function drawArena(ctx: CanvasRenderingContext2D) {
   ctx.lineWidth = 1;
   for (let y = 150; y < floorY; y += 64) {
     ctx.beginPath();
-    ctx.moveTo(22, y);
-    ctx.lineTo(COURT_WIDTH - 22, y);
+    ctx.moveTo(0, y);
+    ctx.lineTo(COURT_WIDTH, y);
     ctx.stroke();
   }
 
