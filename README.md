@@ -1,1 +1,1 @@
-vercel link - tap-tap-shots-rosy.vercel.appgit 
+vercel link - https://tap-tap-shots-gules.vercel.app/
