@@ -163,7 +163,8 @@ export function App() {
         },
       });
 
-      if (time - lastUiUpdateRef.current > 30 || gameRef.current.status !== snapshot.status) {
+      // UI THROTTLE: Increased to 60ms to vastly improve mobile input latency
+      if (time - lastUiUpdateRef.current > 60 || gameRef.current.status !== snapshot.status) {
         lastUiUpdateRef.current = time;
         setSnapshot({ ...gameRef.current });
       }
