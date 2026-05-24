@@ -20,22 +20,16 @@ export function drawTapTapGame(
   ctx.clearRect(0, 0, width, height);
   drawViewportBackground(ctx, width, height);
 
-  // --- NEW RESPONSIVE SCALING LOGIC ---
-  // If the screen is portrait (like a phone), force the game to fill the width.
-  // If it's landscape (like a desktop), contain it normally so it doesn't zoom massively.
-  const isPortrait = width < height;
-  const scale = isPortrait 
+  // Responsive scaling to pin to the bottom edge on phones
+  const isMobile = width < height;
+  const scale = isMobile 
     ? width / COURT_WIDTH 
     : Math.min(width / COURT_WIDTH, height / COURT_HEIGHT);
 
   const gameWidthPixels = COURT_WIDTH * scale;
   const gameHeightPixels = COURT_HEIGHT * scale;
-  
   const offsetX = (width - gameWidthPixels) / 2;
-  
-  // In portrait, align the game to the bottom so the floor is always perfectly visible.
-  // In landscape, center it vertically.
-  const offsetY = isPortrait 
+  const offsetY = isMobile 
     ? height - gameHeightPixels 
     : (height - gameHeightPixels) / 2;
 
@@ -50,13 +44,14 @@ export function drawTapTapGame(
   drawArena(ctx);
   drawScoreGhost(ctx, game.score);
   drawHoopBack(ctx, game.hoop, game.netPull);
-  drawTrail(ctx, game);
+  drawTrail(ctx, game, isMobile);
   drawBall(ctx, game, assets.sheet);
   drawHoopFront(ctx, game.hoop, game.netPull);
-  drawScoreBurst(ctx, game);
+  drawScoreBurst(ctx, game, isMobile);
 
   ctx.restore();
 }
+
 function drawViewportBackground(ctx: CanvasRenderingContext2D, width: number, height: number) {
   const bg = ctx.createLinearGradient(0, 0, 0, height);
   bg.addColorStop(0, "#15141c");
@@ -245,20 +240,27 @@ function drawNet(ctx: CanvasRenderingContext2D, hoop: Hoop, front: boolean, netP
   ctx.restore();
 }
 
-function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame) {
+function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame, isMobile: boolean) {
   if (game.ballHistory.length < 2 || game.status !== "running") return;
 
   const fire = game.combo > 0 ? Math.max(0.92, game.fireTime / 1.55) : 0;
   ctx.save();
   ctx.globalCompositeOperation = "lighter";
-  game.ballHistory.forEach((point, index) => {
-    const t = index / game.ballHistory.length;
+
+  // Density Cap: Draws fewer overlapping circles to save GPU on mobile, 
+  // but keeps all shadows and glowing neon effects intact!
+  const historyLimit = isMobile ? Math.min(14, game.ballHistory.length) : game.ballHistory.length;
+
+  for (let index = 0; index < historyLimit; index += 1) {
+    const point = game.ballHistory[index];
+    const t = index / historyLimit; 
     const age = 1 - t;
     const comboBoost = fire > 0 ? 1.12 + fire * 0.28 : 0.72;
     const radius = game.ballRadius * (1.25 - t * 0.88) * comboBoost;
 
     ctx.beginPath();
     ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+    
     if (fire > 0) {
       const hue = 48 - t * 36;
       ctx.fillStyle = `hsla(${hue}, 100%, ${index < 4 ? 58 : 40}%, ${age * 0.36 * fire})`;
@@ -278,7 +280,7 @@ function drawTrail(ctx: CanvasRenderingContext2D, game: BasketballGame) {
       ctx.shadowBlur = 4;
       ctx.fill();
     }
-  });
+  }
   ctx.restore();
 }
 
@@ -325,7 +327,7 @@ function drawBall(ctx: CanvasRenderingContext2D, game: BasketballGame, sheet?: H
   ctx.restore();
 }
 
-function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame) {
+function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame, isMobile: boolean) {
   if (game.scoreFlash <= 0) return;
   const duration = game.lastScoreWasSwish ? 0.76 : 0.58;
   const pulse = Math.min(1, game.scoreFlash / duration);
@@ -364,8 +366,10 @@ function drawScoreBurst(ctx: CanvasRenderingContext2D, game: BasketballGame) {
     ctx.ellipse(0, 5, 34 + outward * 112, 8 + outward * 36, 0, 0, Math.PI * 2);
     ctx.stroke();
 
-    for (let i = 0; i < 18; i += 1) {
-      const angle = (i / 18) * Math.PI * 2 + outward * 1.9;
+    // Particle Density Drop: Renders 11 sparks instead of 18 on mobile devices.
+    const particleCount = isMobile ? 11 : 18;
+    for (let i = 0; i < particleCount; i += 1) {
+      const angle = (i / particleCount) * Math.PI * 2 + outward * 1.9;
       const wave = Math.sin(i * 2.17) * 0.28;
       const distance = 34 + outward * (68 + (i % 3) * 18);
       const x = Math.cos(angle) * distance;
