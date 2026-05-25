@@ -5,8 +5,28 @@ type AudioWindow = Window & typeof globalThis & {
 let audioCtx: AudioContext | null = null;
 let isMuted = false;
 let lastBounceSoundAt = -Infinity;
+let activeToneCount = 0;
+let idleSuspendTimer: number | null = null;
+
+function clearIdleSuspendTimer() {
+  if (idleSuspendTimer === null) return;
+  window.clearTimeout(idleSuspendTimer);
+  idleSuspendTimer = null;
+}
+
+function scheduleIdleSuspend() {
+  if (!audioCtx || activeToneCount > 0) return;
+  clearIdleSuspendTimer();
+  idleSuspendTimer = window.setTimeout(() => {
+    idleSuspendTimer = null;
+    if (audioCtx && audioCtx.state === "running" && activeToneCount === 0) {
+      void audioCtx.suspend();
+    }
+  }, 450);
+}
 
 function initAudio() {
+  clearIdleSuspendTimer();
   if (!audioCtx) {
     const AudioContextClass = window.AudioContext ?? (window as AudioWindow).webkitAudioContext;
     if (!AudioContextClass) return;
@@ -45,21 +65,31 @@ function playTone(
 
   oscillator.connect(gain);
   gain.connect(options.destination ?? audioCtx.destination);
+  activeToneCount += 1;
+  oscillator.onended = () => {
+    activeToneCount = Math.max(0, activeToneCount - 1);
+    oscillator.disconnect();
+    gain.disconnect();
+    scheduleIdleSuspend();
+  };
   oscillator.start(t);
   oscillator.stop(t + duration + 0.03);
 }
 
 export function toggleTapMute() {
   isMuted = !isMuted;
+  if (isMuted) {
+    scheduleIdleSuspend();
+  }
   return isMuted;
 }
 
 export function startTapMusic() {
-  initAudio();
+  // No background audio: sound effects initialize the audio context on demand.
 }
 
 export function stopTapMusic() {
-  // Gameplay music was removed because the generated loop sounded like static.
+  scheduleIdleSuspend();
 }
 
 export function playButtonSound() {
