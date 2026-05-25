@@ -149,7 +149,9 @@ export function App() {
       stepTapTapGame(gameRef.current, dt, {
         onBounce: () => playRimBounceSound(),
         onScore: (scoreEvent) => {
-          playScoreSound(scoreEvent.swishStreak, scoreEvent.points);
+          if (!scoreEvent.isSwish) {
+            playScoreSound(scoreEvent.swishStreak, scoreEvent.points);
+          }
         }, 
         onSwish: () => playNetSwishSound(),
         onBuzzer: () => {
