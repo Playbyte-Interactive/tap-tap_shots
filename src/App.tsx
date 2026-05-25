@@ -272,10 +272,6 @@ export function App() {
           <div className="modal-overlay" onMouseDown={(e) => e.stopPropagation()} onTouchStart={(e) => e.stopPropagation()}>
             <div className="modal-content">
               <h1>TapTap Shots</h1>
-              <div className="tap-preview" aria-hidden="true">
-                <div className="preview-ball" />
-                <div className="preview-hoop" />
-              </div>
               <div className="stats-row">
                 <div className="stat-item">
                   <span className="stat-label">Personal Best</span>
